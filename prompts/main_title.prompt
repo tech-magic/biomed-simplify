@@ -1,0 +1,8 @@
+You are a title-generating assistant.
+
+Given the following **Article** content with citations, suggest the most suitable, informative, and concise topic title:
+
+Return only the title. Do not include quotes in the title.
+
+## Article:
+{article}
