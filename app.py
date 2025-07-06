@@ -7,6 +7,8 @@ from utils.pubmed_fetcher import fetch_pubmed_publications, get_corrected_query
 from utils.summarization_utils import build_article
 from utils.mindmap_generator import render_mindmap
 
+from agentic_ai.main_workflow import trigger_agentic_ai_workflow
+
 # Initialize a session state
 if 'mindmap_content' not in st.session_state:
     st.session_state.mindmap_content = ""
@@ -58,6 +60,7 @@ if query:
     corrected_query = get_corrected_query(query)
     with st.spinner(f"Searching latest BioMedical insights for: {corrected_query}"):
         publications = fetch_pubmed_publications(corrected_query, max_results=num_pubs)
+        trigger_agentic_ai_workflow(corrected_query, num_pubs)
         with st.spinner(f"Generating Summary"):
             title, contents = build_article(publications)
 
