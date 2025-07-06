@@ -24,7 +24,7 @@ def get_corrected_query(query, email=ENTREZ_EMAIL):
         print("❌ Error:", e)
         return query
     
-def ieee_citation(record):
+def build_citation(record, i):
     authors = record.get('AU', [])
     if len(authors) > 3:
         authors_text = f"{authors[0]} et al."
@@ -33,7 +33,7 @@ def ieee_citation(record):
     title = record.get('TI', 'No Title')
     journal = record.get('JT', 'No Journal')
     year = record.get('DP', 'n.d.').split(" ")[0]
-    return f"{authors_text}, {title}, {journal}, {year}."
+    return f"[{i}]. {authors_text}, {title}, {journal}, {year}."
 
 def fetch_pubmed_publications(query, email=ENTREZ_EMAIL, max_results=10):
 
@@ -63,9 +63,11 @@ def fetch_pubmed_publications(query, email=ENTREZ_EMAIL, max_results=10):
 
     return [
         {
-            "id": str(record.get("PMID", "Unknown")),
-            "citation": ieee_citation(record),
-            "abstract": record.get('AB', 'No abstract available.')
+            "id": str(i),
+            "pmid": str(record.get("PMID", "Unknown")),
+            "citation": build_citation(record, str(i)),
+            "abstract": record['AB'].strip()
         }
-        for record in sorted(records, key=lambda r: int(r.get("PMID", 0)))
+        for i, record in enumerate(records, start=1)
+        if record.get('AB') and record['AB'].strip()
     ]
