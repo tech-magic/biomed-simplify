@@ -1,11 +1,11 @@
+import os
 import streamlit as st
 from streamlit.components.v1 import html as st_html # Alias to avoid conflict
 
 from ui.dashboard_utils import fetch_introduction, fetch_search_manual, fetch_search_instructions
 
 from utils.pubmed_fetcher import fetch_pubmed_publications, get_corrected_query
-from utils.summarization_utils import build_article
-from utils.mindmap_generator import render_mindmap
+from utils.mindmap_generator import mindmap_to_html
 
 from agentic_ai.main_workflow import trigger_agentic_ai_workflow
 
@@ -60,32 +60,34 @@ if query:
     corrected_query = get_corrected_query(query)
     with st.spinner(f"Searching latest BioMedical insights for: {corrected_query}"):
         publications = fetch_pubmed_publications(corrected_query, max_results=num_pubs)
-        trigger_agentic_ai_workflow(corrected_query, num_pubs)
         with st.spinner(f"Generating Summary"):
-            title, contents = build_article(publications)
+            results = trigger_agentic_ai_workflow(corrected_query, num_pubs)
+            
+            title = results["title"]
+            contents = results["contents"]
+            references = os.linesep.join(results["references"])
+            mindmap_code = results["mindmap"]
 
-            citation_list = "\n".join(
-                [f"{i+1}. {pub['citation']}" for i, pub in enumerate(publications)]
-            )
+            latest_mindmap = mindmap_to_html(mindmap_code)
+            st.session_state.mindmap_content = latest_mindmap
 
-            markdown_content = f"""
+            markdown_pre_content = f"""
 # Latest findings for **{corrected_query}**
 
 ## {title}
 
+"""
+            st.markdown(markdown_pre_content, unsafe_allow_html=True)
+
+            markdown_post_content = f"""
+
 {contents}
 
 #### References
-{citation_list}
+{references}
             """
+            st.markdown(markdown_post_content, unsafe_allow_html=True)
 
-            print(markdown_content)
-
-            st.markdown(markdown_content, unsafe_allow_html=True)
-
-            with st.spinner(f"Generating Mindmap"):
-                latest_mindmap = render_mindmap(contents)
-                print(latest_mindmap)
-                st.session_state.mindmap_content = latest_mindmap
-                st_html(st.session_state.mindmap_content, height=800)
+            st_html(st.session_state.mindmap_content, height=800)
+                
 
