@@ -1,17 +1,11 @@
-import os
 import streamlit as st
 from streamlit.components.v1 import html as st_html # Alias to avoid conflict
 
-from ui.dashboard_utils import fetch_introduction, fetch_search_manual, fetch_search_instructions
-
 from utils.pubmed_fetcher import fetch_pubmed_publications, get_corrected_query
-from utils.mindmap_generator import mindmap_to_html
-
 from agentic_ai.main_workflow import trigger_agentic_ai_workflow
 
-# Initialize a session state
-if 'mindmap_content' not in st.session_state:
-    st.session_state.mindmap_content = ""
+from ui.dashboard_utils import fetch_introduction, fetch_search_manual, fetch_search_instructions
+from ui.summary_report_utils import build_report
 
 st.set_page_config(
     page_title="BioMedSimplify",  # Tab title
@@ -58,36 +52,13 @@ with col_search_3:
 
 if query:
     corrected_query = get_corrected_query(query)
-    with st.spinner(f"Searching latest BioMedical insights for: {corrected_query}"):
+    with st.spinner(f"Searching latest insights for: {corrected_query}"):
         publications = fetch_pubmed_publications(corrected_query, max_results=num_pubs)
-        with st.spinner(f"Generating Summary"):
-            results = trigger_agentic_ai_workflow(corrected_query, num_pubs)
+        with st.spinner(f"Generating Report"):
+            agentic_ai_results = trigger_agentic_ai_workflow(corrected_query, num_pubs)
+            build_report(st, st_html, corrected_query, agentic_ai_results)
+
             
-            title = results["title"]
-            contents = results["contents"]
-            references = os.linesep.join(results["references"])
-            mindmap_code = results["mindmap"]
-
-            latest_mindmap = mindmap_to_html(mindmap_code)
-            st.session_state.mindmap_content = latest_mindmap
-
-            markdown_pre_content = f"""
-# Latest findings for **{corrected_query}**
-
-## {title}
-
-"""
-            st.markdown(markdown_pre_content, unsafe_allow_html=True)
-
-            markdown_post_content = f"""
-
-{contents}
-
-#### References
-{references}
-            """
-            st.markdown(markdown_post_content, unsafe_allow_html=True)
-
-            st_html(st.session_state.mindmap_content, height=800)
+            
                 
 
