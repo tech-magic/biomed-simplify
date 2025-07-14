@@ -26,32 +26,6 @@ Respond with a JSON object (representing summary validation results) with the fo
 
 """
 
-CONTEXT_VALIDATION_DESCRIPTION="""
-
-Use the input JSON object {combined_summary_results}, to validate the **summary** field against the **source_ids** and **references** fields.
-
-Inspect for any language that explicitly mentions the existence of 2 documents, such as:
-- "Here is a summary of Document A and Document B."
-- "Both documents discuss..."
-
-IF there is any indication in the language that the summary was based on 2 documents THEN
-    - Mark the `valid` flag in **summary validation results** as false (i.e., invalidate the summary so it has to be redone)
-    - Add all problematic phrases to the `errors` list.
-ELSE
-    - Mark the `valid` flag in **summary validation results** as true
-END IF
-
-Respond with a JSON object (representing **summary validation results**) with the following fields:
-
-```json
-{
-    "valid": bool,
-    "errors": List[]  # List of all validation issues
-}
-```
-
-"""
-
 EXPECTED_OUTPUT="""
 
 A JSON object with the following fields:
@@ -94,17 +68,6 @@ def get_summary_validation_task(summary_validation_agent):
         max_retries=10,
         output_validation=validate_summary_validation_output
     )
-
-def get_summary_context_validation_task(summary_validation_agent):
-    return Task(
-        name="summary_context_validation_task",
-        agent=summary_validation_agent,
-        description=CONTEXT_VALIDATION_DESCRIPTION,
-        expected_output=EXPECTED_OUTPUT,
-        output_format="JSON",
-        max_retries=10,
-        output_validation=validate_summary_validation_output
-    )
     
 def validate_combined_summary(output_str: str) -> Tuple[bool, Any]:
     try:
@@ -138,21 +101,6 @@ def validate_combined_summary(output_str: str) -> Tuple[bool, Any]:
                         return (False, "'errors' field is not found in the JSON object returned as task output")
                     
                     if is_valid:
-
-                        summary_context_validation_task = get_summary_context_validation_task(summary_validation_agent)
-
-                        summary_context_validation_crew = Crew(
-                            agents=[summary_validation_agent],
-                            tasks=[summary_context_validation_task],
-                            process=Process.sequential,
-                            manager_llm=get_crew_llm()
-                        )
-
-                        context_validation_result = summary_context_validation_crew.kickoff(inputs={
-                                "combined_summary_results": data
-                            }
-                        )
-
                         return (True, "Validation passed")
                     else:
                         return (False, os.linesep.join(errors))

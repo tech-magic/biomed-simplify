@@ -1,9 +1,9 @@
 import os
 
-from utils.mermaid_mindmap_generator import mindmap_to_html 
+from utils.mermaid_mindmap_renderer import mindmap_to_html 
 
 SUMMARY_REPORT_HEADER = """
-#### Latest findings for **{input_query}**
+#### Latest findings for 👉 🧭 **{input_query}** 🧭
 
 # {report_title}
 

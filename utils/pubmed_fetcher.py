@@ -35,39 +35,75 @@ def build_citation(record, i):
     year = record.get('DP', 'n.d.').split(" ")[0]
     return f"[{i}]. {authors_text}, {title}, {journal}, {year}."
 
-def fetch_pubmed_publications(query, email=ENTREZ_EMAIL, max_results=10):
+from typing import List, Dict
+from Bio import Entrez, Medline
 
+ENTREZ_EMAIL = "your.email@example.com"   # set once and reuse
+
+
+def _search_pubmed_ids(query: str, email: str, retstart: int, retmax: int) -> List[str]:
+    """Return ≤ retmax PubMed IDs starting at offset `retstart`."""
     Entrez.email = email
-    # Search PubMed with the query, sorted by publication date descending
-    search_handle = Entrez.esearch(
+    with Entrez.esearch(
         db="pubmed",
         term=query,
-        sort="pub date",    # Sort by most recent
-        retmax=max_results
-    )
-    search_results = Entrez.read(search_handle)
-    search_handle.close()
+        sort="pub date",
+        retstart=retstart,
+        retmax=retmax,
+    ) as handle:
+        result = Entrez.read(handle)
+    return result["IdList"]
 
-    # Extract the list of PubMed IDs
-    id_list = search_results["IdList"]
 
-    # Fetch citation and abstract details for the found PubMed IDs
-    fetch_handle = Entrez.efetch(
+def _fetch_medline_records(id_list: List[str]) -> List[Dict]:
+    """Fetch MEDLINE records for the given PubMed IDs."""
+    if not id_list:
+        return []
+    with Entrez.efetch(
         db="pubmed",
         id=",".join(id_list),
         rettype="medline",
-        retmode="text"
-    )
-    records = list(Medline.parse(fetch_handle))
-    fetch_handle.close()
+        retmode="text",
+    ) as handle:
+        return list(Medline.parse(handle))
 
-    return [
-        {
-            "id": str(i),
-            "pmid": str(record.get("PMID", "Unknown")),
-            "citation": build_citation(record, str(i)),
-            "abstract": record['AB'].strip()
-        }
-        for i, record in enumerate(records, start=1)
-        if record.get('AB') and record['AB'].strip()
-    ]
+
+def fetch_pubmed_publications(
+    query: str,
+    email: str = ENTREZ_EMAIL,
+    max_results: int = 10,
+) -> List[Dict]:
+    """
+    Get up to `max_results` PubMed records **that have abstracts**.
+    Each paging request also asks for `max_results` IDs, so the
+    batch‑size == max_results invariant is always satisfied.
+    """
+    gathered: List[Dict] = []
+    retstart = 0  # offset for the next esearch call
+
+    while len(gathered) < max_results:
+        # Request the next "page" – same size as max_results
+        id_list = _search_pubmed_ids(query, email, retstart, max_results)
+        if not id_list:  # no more results
+            break
+
+        for record in _fetch_medline_records(id_list):
+            abstract = record.get("AB", "").strip()
+            if not abstract:
+                continue  # skip papers without abstracts
+
+            gathered.append(
+                {
+                    "id": str(len(gathered) + 1),
+                    "pmid": record.get("PMID", "Unknown"),
+                    "citation": build_citation(record, str(len(gathered) + 1)),
+                    "abstract": abstract,
+                }
+            )
+            if len(gathered) >= max_results:
+                break
+
+        retstart += max_results  # move offset by one full "page"
+
+    return gathered  # may be < max_results if PubMed runs out
+

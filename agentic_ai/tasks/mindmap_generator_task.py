@@ -26,7 +26,7 @@ You are an expert in generating **Mermaid.js mindmaps** for a given input **summ
 
 Following are the **syntax rules** for creating a **valid mermaid.js mindmap**:
 
-1. Start the chart with `mindmap` on its own line.
+1. Start the chart with `mindmap` on its own line. Never include spaces before or after the `mindmap` keyword.
 2. Don't use single backticks or triple backticks (` ``` `) anywhere in the diagram syntax.
 3. The first node has to be the "root" node in the second line, indented with one tab to the right from the first line, followed by two brackets like:
 root((Main Idea))
@@ -99,7 +99,7 @@ EXPECTED_OUTPUT="""
 3. Use single parentheses `()` to shape the nodes.
 4. Do not use emojis or icons.
 5. Make sure there are no extra spaces at the end of lines. Don't use special characters or brackets in the chart labels.
-6. Start the chart with `mindmap` on its own line. Don't use triple backticks (` ``` `) to wrap the diagram.
+6. Start the chart with `mindmap` on its own line. Don't include spaces before or after the `mindmap` keyword. Don't use triple backticks (` ``` `) to wrap the diagram.
 7. Do not include `style root` lines or any comment lines (like ones starting with `#`). The second line should start with `root(...)`.
 8. Avoid or escape special characters — for example, write `bioinfo.edu` instead of `bioinfo[.]edu`.
 9. Use dashes to add explanations, not extra brackets.
@@ -109,11 +109,41 @@ EXPECTED_OUTPUT="""
 
 """
 
+def passes_static_validations(mindmap_code) -> tuple[bool, str]:
+
+    # Static validation
+    lines = mindmap_code.strip().splitlines()
+
+    # Ensure code starts with 'mindmap'
+    if not lines or lines[0].strip() != "mindmap":
+        return False, "Missing 'mindmap' as the first line"
+
+    # Ensure a root node exists
+    if not any("root((" in line for line in lines):
+        return False, "Missing root node with syntax like 'root((Main Topic))'"
+
+    # Ensure no forbidden characters
+    if any("```" in line or "[" in line or "]" in line for line in lines):
+        return False, "Contains invalid syntax (e.g., triple backticks or square brackets)"
+
+    # Ensure no line has trailing or non-tab leading spaces
+    for i, line in enumerate(lines):
+        stripped = line.lstrip('\t')  # Remove leading tabs
+        if stripped != stripped.strip():
+            return False, f"Line {i+1} has invalid leading/trailing spaces (only tabs allowed for indentation)"
+
+    return True, "Valid mindmap syntax"
+
 def validate_mindmap_output(mindmap_code: str) -> tuple[bool, str]:
     """
     Validates a Mermaid.js mindmap diagram by attempting to render it via mermaid.ink.
     If the external service is down, it falls back to basic syntax validation rules.
     """
+
+    static_validation_results = passes_static_validations(mindmap_code)
+    if not static_validation_results[0]:
+        return static_validation_results
+
     try:
         # Encode the Mermaid code to base64url format
         b64_code = base64.urlsafe_b64encode(mindmap_code.encode('utf-8')).decode('utf-8')
@@ -126,14 +156,6 @@ def validate_mindmap_output(mindmap_code: str) -> tuple[bool, str]:
             return False, f"Mermaid.ink rejected the mindmap. Status: {resp.status_code}"
 
     except Exception as e:
-        # Fallback static validation
-        lines = mindmap_code.strip().splitlines()
-        if not lines or lines[0].strip() != "mindmap":
-            return False, "Missing 'mindmap' as the first line"
-        if not any("root((" in line for line in lines):
-            return False, "Missing root node with syntax like 'root((Main Topic))'"
-        if any("```" in line or "[" in line or "]" in line for line in lines):
-            return False, "Contains invalid syntax (e.g., triple backticks or square brackets)"
         return True, "Validated with fallback rules (mermaid.ink unreachable)"
 
 def get_mindmap_generator_task(mindmap_generator_agent):
