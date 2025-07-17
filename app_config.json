@@ -1,0 +1,10 @@
+{
+    "entrez": {
+        "email": "any_valid@email.com"
+    },
+    "llm": {
+        "model": "llama3.2:latest",
+        "openai_endpoint": "http://localhost:11434/v1",
+        "openai_api_key": "dummy"
+    }
+}

@@ -1,6 +1,6 @@
 from crewai import Agent
 
-def get_summary_validation_agent():
+def get_summary_validator_agent():
     return Agent(
         role="Summary Quality Validator",
         goal="Determine whether a merged summary is valid, without any mechanical or meta explanation, and that all source IDs are integrated.",

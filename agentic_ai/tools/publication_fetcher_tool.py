@@ -2,7 +2,8 @@ import json
 
 from typing import Any
 from crewai.tools import tool
-from utils.pubmed_fetcher import fetch_pubmed_publications
+
+from agentic_ai.utils.pubmed_fetcher import fetch_pubmed_publications
 
 @tool("publication_fetcher_tool")
 def publication_fetcher_tool(tool_input: str) -> Any:
@@ -17,7 +18,7 @@ def publication_fetcher_tool(tool_input: str) -> Any:
     try:
         data = json.loads(tool_input)
         input_query = data.get("input_query", "")
-        latest_publication_count = int(data.get("latest_publication_count", 10))
-        return fetch_pubmed_publications(input_query, max_results=latest_publication_count)
+        max_results = int(data.get("latest_publication_count", 10))
+        return fetch_pubmed_publications(input_query, max_results)
     except Exception as e:
         return {"error": f"Failed to fetch publications: {str(e)}"}

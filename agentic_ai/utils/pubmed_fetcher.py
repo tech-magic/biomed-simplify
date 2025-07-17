@@ -1,30 +1,11 @@
+from typing import List, Dict
 from Bio import Entrez, Medline
 
-from config.email_config import ENTREZ_EMAIL
+from config.app_config import get_entrez_config
 
-def get_corrected_query(query, email=ENTREZ_EMAIL):
-    Entrez.email = email
-    try:
-        with Entrez.espell(term=query) as handle:
-            record = Entrez.read(handle)
+ENTREZ_EMAIL = get_entrez_config().get("email")
 
-        original = record.get("Query", "[No Query Returned]")
-        corrected = record.get("CorrectedQuery")
-
-        print("Original Query:", original)
-
-        if corrected and isinstance(corrected, str) and corrected.lower() != 'no correction suggested':
-            print("Corrected Query:", corrected)
-            return corrected
-
-        
-        return query
-
-    except Exception as e:
-        print("❌ Error:", e)
-        return query
-    
-def build_citation(record, i):
+def _build_citation(record, i):
     authors = record.get('AU', [])
     if len(authors) > 3:
         authors_text = f"{authors[0]} et al."
@@ -35,15 +16,9 @@ def build_citation(record, i):
     year = record.get('DP', 'n.d.').split(" ")[0]
     return f"[{i}]. {authors_text}, {title}, {journal}, {year}."
 
-from typing import List, Dict
-from Bio import Entrez, Medline
-
-ENTREZ_EMAIL = "your.email@example.com"   # set once and reuse
-
-
-def _search_pubmed_ids(query: str, email: str, retstart: int, retmax: int) -> List[str]:
-    """Return ≤ retmax PubMed IDs starting at offset `retstart`."""
-    Entrez.email = email
+def _search_pubmed_ids(query: str, retstart: int, retmax: int) -> List[str]:
+    """Return ≤ retmax PubMed IDs starting at offset `retstart`."""
+    Entrez.email = ENTREZ_EMAIL
     with Entrez.esearch(
         db="pubmed",
         term=query,
@@ -66,11 +41,32 @@ def _fetch_medline_records(id_list: List[str]) -> List[Dict]:
         retmode="text",
     ) as handle:
         return list(Medline.parse(handle))
+    
+def get_corrected_query(query):
+    Entrez.email = ENTREZ_EMAIL
+    try:
+        with Entrez.espell(term=query) as handle:
+            record = Entrez.read(handle)
+
+        original = record.get("Query", "[No Query Returned]")
+        corrected = record.get("CorrectedQuery")
+
+        print("Original Query:", original)
+
+        if corrected and isinstance(corrected, str) and corrected.lower() != 'no correction suggested':
+            print("Corrected Query:", corrected)
+            return corrected
+
+        
+        return query
+
+    except Exception as e:
+        print("❌ Error:", e)
+        return query
 
 
 def fetch_pubmed_publications(
     query: str,
-    email: str = ENTREZ_EMAIL,
     max_results: int = 10,
 ) -> List[Dict]:
     """
@@ -83,7 +79,7 @@ def fetch_pubmed_publications(
 
     while len(gathered) < max_results:
         # Request the next "page" – same size as max_results
-        id_list = _search_pubmed_ids(query, email, retstart, max_results)
+        id_list = _search_pubmed_ids(query, retstart, max_results)
         if not id_list:  # no more results
             break
 
@@ -96,7 +92,7 @@ def fetch_pubmed_publications(
                 {
                     "id": str(len(gathered) + 1),
                     "pmid": record.get("PMID", "Unknown"),
-                    "citation": build_citation(record, str(len(gathered) + 1)),
+                    "citation": _build_citation(record, str(len(gathered) + 1)),
                     "abstract": abstract,
                 }
             )

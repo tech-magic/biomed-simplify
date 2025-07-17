@@ -4,7 +4,7 @@ from typing import Any, Tuple
 
 from crewai import Crew, Task, Process
 from agentic_ai.llm.llm_utils import get_crew_llm
-from agentic_ai.agents.summary_validation_agent import get_summary_validation_agent
+from agentic_ai.agents.summary_validator_agent import get_summary_validator_agent
 
 DESCRIPTION = """
 
@@ -58,7 +58,7 @@ def validate_summary_validation_output(output_str: str) -> Tuple[bool, Any]:
     except json.JSONDecodeError:
         return (False, "The generated summary validation is not a properly formatted JSON Object")
 
-def get_summary_validation_task(summary_validation_agent):
+def get_summary_validator_task(summary_validation_agent):
     return Task(
         name="summary_validation_task",
         agent=summary_validation_agent,
@@ -73,8 +73,8 @@ def validate_combined_summary(output_str: str) -> Tuple[bool, Any]:
     try:
         data = json.loads(output_str)
         if isinstance(data, dict):
-            summary_validation_agent = get_summary_validation_agent()
-            summary_validation_task = get_summary_validation_task(summary_validation_agent)
+            summary_validation_agent = get_summary_validator_agent()
+            summary_validation_task = get_summary_validator_task(summary_validation_agent)
 
             summary_validation_crew = Crew(
                 agents=[summary_validation_agent],

@@ -1,7 +1,7 @@
 import streamlit as st
 from streamlit.components.v1 import html as st_html # Alias to avoid conflict
 
-from utils.pubmed_fetcher import fetch_pubmed_publications, get_corrected_query
+from agentic_ai.utils.pubmed_fetcher import get_corrected_query
 from agentic_ai.main_workflow import trigger_agentic_ai_workflow
 
 from ui.dashboard_utils import fetch_introduction, fetch_search_manual, fetch_search_instructions
@@ -53,7 +53,6 @@ with col_search_3:
 if query:
     corrected_query = get_corrected_query(query)
     with st.spinner(f"Searching latest insights for: {corrected_query}"):
-        publications = fetch_pubmed_publications(corrected_query, max_results=num_pubs)
         with st.spinner(f"Generating Report"):
             agentic_ai_results = trigger_agentic_ai_workflow(corrected_query, num_pubs)
             build_report(st, st_html, corrected_query, agentic_ai_results)

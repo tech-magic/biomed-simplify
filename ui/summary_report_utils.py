@@ -1,6 +1,6 @@
 import os
 
-from utils.mermaid_mindmap_renderer import mindmap_to_html 
+from ui.utils.mermaid_mindmap_renderer import mindmap_to_html 
 
 SUMMARY_REPORT_HEADER = """
 #### Latest findings for 👉 🧭 **{input_query}** 🧭
@@ -17,6 +17,10 @@ SUMMARY_REPORT_BODY = """
 
 ### References
 {references}
+
+---
+
+### Mindmap
 
 """
 

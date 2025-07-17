@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 from crewai import Task, Crew, Process
 
 from agentic_ai.llm.llm_utils import get_crew_llm
-from agentic_ai.tasks.summary_validation_task import validate_combined_summary
+from agentic_ai.tasks.summary_validator_task import validate_combined_summary
 
 COMBINED_SUMMARY_PROMPT= """
 
