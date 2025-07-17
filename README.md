@@ -19,12 +19,46 @@
 
 ## 🧪 Agentic Workflow (CrewAI)
 
+```mermaid
+
+%%{ init: { 
+  "theme": "forest",
+  "look": "handDrawn",
+  "flowchart": { 
+    "curve": "basis", 
+    "nodeSpacing": 40, 
+    "rankSpacing": 60, 
+    "useMaxWidth": true,
+    "defaultRenderer": "dagre",
+    "htmlLabels": false,
+    "handdrawn": true 
+  } 
+}}%%
+
+flowchart LR
+    A[🔍 Search & Fetch<br/>Agent: publication_fetcher_agent<br/>Task: publication_fetcher_task] --> B
+    B[✏️ Plain-English Rewrite<br/>Agent: plain_english_explainer_agent<br/>Task: plain_english_explainer_task] --> C_Sub
+
+    subgraph C_Sub[🧬 Recursive Summary]
+        C1[Agent:<br/>recursive_summarizer_agent<br/>Task: recursive_summarizer_task]
+
+        C2[✅ Summary Validation<br/>Agent: summary_validator_agent<br/>Task: summary_validator_task]
+        C1 --> C2
+    end
+
+    
+    C_Sub --> D[🧠 Title Generator<br/>Agent: title_generator_agent<br/>Task: title_generator_task]
+    D --> E[🗺️ Mind Map Generator<br/>Agent: mindmap_generator_agent<br/>Task: mindmap_generator_task]
+
+
+```
+
 | Step | Agent | Task | Description |
 |------|-------|------|-------------|
 | 🔍 Search & Fetch | `publication_fetcher_agent` | `publication_fetcher_task` | Query NCBI via BioPython Entrez for latest publications |
 | ✏️ Plain-English Rewrite | `plain_english_explainer_agent` | `plain_english_explainer_task` | Rewrites abstracts into simple language |
 | 🧬 Recursive Summary | `recursive_summarizer_agent` | `recursive_summarizer_task` | Builds a coherent summary using simplified abstracts |
-| ✅ Validation | `summary_validation_agent` | `summary_validation_task` | Ensures coherence and that all papers are cited |
+| ✅ Validation | `summary_validator_agent` | `summary_validator_task` | Ensures coherence and that all papers are cited |
 | 🧠 Title Generator | `title_generator_agent` | `title_generator_task` | Suggests the best possible title |
 | 🗺️ Mind Map Generator | `mindmap_generator_agent` | `mindmap_generator_task` | Generates a MermaidJS mind map of concepts |
 
@@ -41,6 +75,12 @@ The output Markdown report includes:
 
 ---
 
+## 📸 Demo
+
+![Demo](assets/demo.gif)
+
+---
+
 ## 🧠 Use Cases
 
 - **Students**: Understand research in simpler terms  
@@ -51,21 +91,54 @@ The output Markdown report includes:
 
 ---
 
-## 📸 UI Screenshot
+## 🖥️ Running the Project
 
-> (You can insert a Streamlit screenshot or GIF demo here)
+This project has been tested with python `3.10.16` connected with **Ollama** running locally with LLM `llama3.2:latest`.
 
----
+### 🔧 Steps
 
-## 🖥️ Run Locally with Ollama
+1. Checkout the project code at;
 
-This project has been tested with **Ollama** running locally using `llama3.2:latest`.
+```
+https://github.com/tech-magic/biomed-simplify.git
+```
 
-### 🔧 Ollama Setup
+Execute all steps from 2 to 5 below by traversing to the project root folder via commandline.
 
-1. **Install Ollama** from the [Ollama website](https://ollama.com)
-2. During installation, **set Ollama to run as a service**, or launch it manually:
-   ```bash
-   ollama serve
-    ```
-3. 
+
+2. Adjust the settings inside `app_config.json` based on your local environment.
+
+```json
+{
+    "entrez": {
+        "email": "any_valid@email.com"
+    },
+    "llm": {
+        "model": "llama3.2:latest",
+        "openai_endpoint": "http://localhost:11434/v1",
+        "openai_api_key": "dummy"
+    }
+}
+```
+
+For the `entrez` setting above, you can provide any valid email address (including a personal one). This is required by the `Entrez` module in the `biopython` library when connecting to the NCBI PubMed repository at https://pubmed.ncbi.nlm.nih.gov/.
+
+For the `llm` settings, connect any LLM (ChatGPT, Azure, Ollama, vLLM) endpoint backed by OpenAI.
+
+3. Create a new python virtual environment.
+```
+python3 -m venv biomed-venv
+
+source biomed-venv/bin/activate
+```
+
+4. Install all requirements inside the python virtual environment.
+```
+pip3 install -r requirements.txt
+```
+
+5. Run the project with;
+```
+streamlit run app.py
+```
+You should be able to access the running project at `http://localhost:8501` (see the `Demo` section in this README)
